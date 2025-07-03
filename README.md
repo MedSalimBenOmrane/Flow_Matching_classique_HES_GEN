@@ -7,7 +7,7 @@
 
 Ce dépôt contient le code de l’article ICLR 2025 [PnP-Flow](https://arxiv.org/pdf/2410.02423), une méthode combinant les approches Plug-and-Play avec des modèles Flow Matching pré-entraînés pour résoudre des problèmes de restauration d’images. **Essayez le [demo](https://github.com/annegnx/PnP-Flow/blob/main/demo/demo.ipynb)!**
 
-<img src="demo/algo.png" style="width: 50%; display: flex; justify-content: center;"/>  
+
 
 
 
@@ -63,7 +63,7 @@ Nous fournissons un script pour télécharger les jeux de données et les résea
 
 ## 2. Training
 
-Vous pouvez entraîner votre propre modèle Flow Matching OT.
+Vous pouvez entraîner votre propre modèle Flow Matching classique.
 
 * Modifier les options dans `config/main_config.yaml` ou passer en ligne de commande.
 * Exemple pour CelebA :
