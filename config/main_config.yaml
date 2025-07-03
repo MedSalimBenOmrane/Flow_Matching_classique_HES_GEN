@@ -1,0 +1,49 @@
+# config/fm_config.yaml
+
+seed: null
+## 1) Données
+data:
+  # chemin vers vos patches HES (train/, val/, test/)
+  root: "/home/salim/Desktop/PFE/implimentation/PNP_FM/dataHes"
+  image_size: 256           # comme dans DDPM
+  random_flip: true         # augmentation horizontale (optionnel)
+  num_workers: 1            # adapté à votre machine
+
+## 2) Modèle (U-Net DDPM)
+model:
+  in_channels: 3            # nombre de canaux d’entrée (RGB)
+  dim: 128                  # dimension de base (nombre de filtres au 1er bloc)
+  dim_mults: [1, 1, 2, 2, 4, 4]  # montée progressive des canaux à chaque étape
+  dropout: 0.0              # taux de dropout interne
+  resample_with_conv: true  # up/down-sampling par conv
+  # note : si vous utilisiez heads, head_dim, ajoutnez-les ici aussi
+
+## 3) SDE / Flow-Matching
+flow:
+  # plage de temps t ∈ [0, 1] pour votre SDE/Flow
+  t_min: 0.0
+  t_max: 1.0
+  # N pas si vous voulez discretiser
+  num_steps: 1000
+  # méthode d’intégration ODE (pour le sampling)
+  solver: "euler_heun"
+
+## 4) Optimisation
+optim:
+  lr: 0.000005
+  beta1: 0.9
+  eps: 0.00000001
+  grad_clip: 0.5
+
+## 5) Entraînement
+training:
+  batch_size: 16           # batch_size_train
+  n_epochs: 100
+  snapshot_freq: 7590      # fréquence (itérations) de sauvegarde
+  validation_freq: 7590    # idem pour vos metrics
+  checkpoint_dir: "checkpoints"
+  
+## 6) Sampling (pour visualiser pendant le training)
+sampling:
+  batch_size: 16
+  sampling_steps: 1000      # si vous voulez un aperçu rapide

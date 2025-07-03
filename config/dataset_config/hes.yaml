@@ -1,0 +1,12 @@
+  # config/dataset_config/hes.yaml
+hes:
+  # chemin vers vos images HES (dossier contenant train/, val/, test/)
+  data_root: "/home/salim/Desktop/PFE/implimentation/PNP_FM/dataHes"
+
+  # batch sizes (doivent correspondre à ceux de main_config.yaml)
+  batch_size_train: 20
+  batch_size_test: 20
+  batch_size_ip: 4
+
+  # workers pour DataLoader
+  num_workers: 1
