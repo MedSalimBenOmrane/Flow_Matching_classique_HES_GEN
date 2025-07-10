@@ -588,6 +588,9 @@ def postprocess(img, args):
             invTrans = v2.Normalize(
                 mean=[-0.5 / 0.5, -0.5 / 0.5, -0.5 / 0.5], std=[1./0.5, 1./0.5, 1./0.5])
             img = invTrans(img)
+        # pour tous les modèles de flow (classique, ot, gradient_step, diffusion, rectified…)
+    if args.model in ("fm_indep", "ot", "gradient_step", "diffusion", "rectified"):
+        img = (img + 1.) / 2.
     return img
 
 

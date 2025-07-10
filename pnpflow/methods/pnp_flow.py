@@ -16,7 +16,7 @@ class PNP_FLOW(object):
         self.method = args.method
 
     def model_forward(self, x, t):
-        if self.args.model == "ot":
+        if self.args.model in ("ot", "indep_couplage"):
             return self.model(x, t)
 
         elif self.args.model == "rectified":
@@ -40,8 +40,10 @@ class PNP_FLOW(object):
             return H_adj(H(x) - y) / (self.args.sigma_noise**2)
         elif self.args.noise_type == 'laplace':
             return H_adj(2*torch.heaviside(H(x)-y, torch.zeros_like(H(x)))-1)/self.args.sigma_noise
+        elif self.args.noise_type == 'none':
+            return H_adj(H(x) - y)
         else:
-            raise ValueError('Noise type not supported')
+            raise ValueError(f"Noise type {self.args.noise_type} not supported")
 
     def interpolation_step(self, x, t):
         return t * x + torch.randn_like(x) * (1 - t)
@@ -51,45 +53,49 @@ class PNP_FLOW(object):
         return x + (1 - t.view(-1, 1, 1, 1)) * v
 
     def solve_ip(self, test_loader, degradation, sigma_noise, H_funcs=None):
-        H = degradation.H
-        H_adj = degradation.H_adj
+        H, H_adj = degradation.H, degradation.H_adj
         self.args.sigma_noise = sigma_noise
         num_samples = self.args.num_samples
         steps, delta = self.args.steps_pnp, 1 / self.args.steps_pnp
-        if self.args.noise_type == 'gaussian':
+
+        # Ajustement du learning-rate selon le bruit si besoin
+        if   self.args.noise_type == 'gaussian':
             self.args.lr_pnp = sigma_noise**2 * self.args.lr_pnp
             lr = self.args.lr_pnp
-
         elif self.args.noise_type == 'laplace':
             self.args.lr_pnp = sigma_noise * self.args.lr_pnp
             lr = self.args.lr_pnp
+        elif self.args.noise_type == 'none':
+            # pas de normalisation du pas pour 'none'
+            lr = self.args.lr_pnp
         else:
-            raise ValueError('Noise type not supported')
+            raise ValueError(f"Noise type {self.args.noise_type} not supported")
 
         loader = iter(test_loader)
         for batch in range(self.args.max_batch):
+            # 1) Chargement des vraies paires (HES, HE)
+            hes_img, he_img = next(loader)
+            clean_img = hes_img.to(self.device)  # HES "ground truth"
+            raw_he    = he_img.to(self.device)   # HE "observation"
 
-            (clean_img, labels) = next(loader)
-            self.args.batch = batch
-            print(clean_img.shape)
-
-            if self.args.noise_type == 'gaussian':
-                noisy_img = H(clean_img.clone().to(self.device))
-                torch.manual_seed(batch)
-                noisy_img += torch.randn_like(noisy_img) * sigma_noise
+            # 2) Si vous voulez modéliser un bruit de mesure sur le HE :
+            if   self.args.noise_type == 'gaussian':
+                noisy_img = raw_he + torch.randn_like(raw_he) * sigma_noise
             elif self.args.noise_type == 'laplace':
-                noisy_img = H(clean_img.clone().to(self.device))
                 noise = torch.distributions.laplace.Laplace(
-                    torch.zeros_like(noisy_img), sigma_noise * torch.ones_like(noisy_img)).sample().to(self.device)
-                noisy_img += noise
-            else:
-                raise ValueError('Noise type not supported')
+                    torch.zeros_like(raw_he),
+                    sigma_noise * torch.ones_like(raw_he)
+                ).sample().to(self.device)
+                noisy_img = raw_he + noise
+            else:  # 'none'
+                noisy_img = raw_he
 
             noisy_img, clean_img = noisy_img.to(
                 self.device), clean_img.to('cpu')
 
             # intialize the image with the adjoint operator
-            x = H_adj(torch.ones_like(noisy_img)).to(self.device)
+            #x = H_adj(torch.ones_like(noisy_img)).to(self.device)
+            x = H_adj(noisy_img).to(self.device)
 
             if self.args.compute_time:
                 torch.cuda.synchronize()
