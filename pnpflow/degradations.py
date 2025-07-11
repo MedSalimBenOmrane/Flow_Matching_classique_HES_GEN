@@ -125,3 +125,16 @@ class Superresolution(Degradation):
         elif self.mode == "bicubic":
             x_ = upsample(x, self.sf)
             return torch.real(torch.fft.ifft2(torch.fft.fft2(x_) * torch.conj(torch.fft.fft2(self.filter))))
+        
+class HE_HES_Degradation:
+    def H(self, x):
+        # x a la forme (B, 3, H, W) pour HES
+        # on renvoie les 2 premiers canaux => HE
+        return x[:, :2, :, :]
+
+    def H_adj(self, y):
+        # y a la forme (B, 2, H, W) pour HE
+        # on réinjecte un canal zéro pour reconstruire HES
+        third = torch.zeros_like(y[:, :1, :, :])   # canal Safran nul
+        return torch.cat([y, third], dim=1)        # (B, 3, H, W)
+
